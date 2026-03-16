@@ -388,3 +388,4 @@ Once you're comfortable with the basics:
 - **Try `/audit`** — Run a security + quality audit before PRs
 - **Upgrade to Team tier** — Add sprint planning templates and memory
 - **Upgrade to Full tier** — Add multi-agent delegation and Codex dual-review
+- **Go parallel** — Run multiple agents in separate windows with git worktrees (see "Multi-Agent Parallel Work" in `PLAYBOOK.md`)

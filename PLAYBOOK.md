@@ -240,7 +240,64 @@ Validated across 32+ review-fix commits:
 
 ## Multi-Agent Parallel Work
 
-When multiple agents work on the same sprint:
+When multiple agents work on the same sprint, you run them in **separate terminal windows** with **git worktrees** so they don't step on each other.
+
+### Terminal Layout
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  WINDOW 1: Spec Writer                                          │
+│  Purpose: Write specs, validate plans, manage backlog           │
+│  Branch: sprint-N/main (or main for cross-sprint specs)         │
+│  Runs: /spec, /staff-review, /codex-cto                        │
+│  When done: Spec is in specs/<name>.md, ready for work orders   │
+├─────────────────────────────────────────────────────────────────┤
+│  WINDOW 2: CTO Orchestrator                                     │
+│  Purpose: Create work orders, delegate to specialists, review   │
+│  Branch: sprint-N/main (sprint branch)                          │
+│  Runs: Creates work orders from spec, spawns agents, runs /pr   │
+│  When done: Work orders dispatched, PR reviewed and merged      │
+├─────────────────────────────────────────────────────────────────┤
+│  WINDOW 3+: Specialist Agents (one per worktree)                │
+│  Purpose: Implement slices from work orders                     │
+│  Branch: sprint-N/slice-name (worktree off sprint branch)       │
+│  Runs: /tdd-workflow, implements, /commit, /check-tenancy       │
+│  When done: Slice complete, pushed, ready for CTO review        │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Setting Up Worktrees
+
+Each specialist agent works in a **git worktree** — an isolated copy of the repo on its own branch. This lets agents edit files in parallel without merge conflicts.
+
+```bash
+# You're on the sprint branch
+git checkout sprint-19/main
+
+# Create a worktree for each specialist
+git worktree add ../project-backend sprint-19/backend-slice
+git worktree add ../project-frontend sprint-19/frontend-slice
+
+# Open each worktree in a separate terminal
+cd ../project-backend   # Window 3: Backend Lead works here
+cd ../project-frontend  # Window 4: Frontend Lead works here
+```
+
+**Key rules:**
+- Worktrees branch off the **sprint branch**, not main
+- One sprint branch per sprint (e.g., `sprint-19/main`)
+- Each worktree gets its own slice branch (e.g., `sprint-19/backend-slice`)
+- When a slice is done, merge it back to the sprint branch
+
+### Cleanup
+
+```bash
+# After slices are merged back to sprint branch
+git worktree remove ../project-backend
+git worktree remove ../project-frontend
+```
+
+### Parallelization Rules
 
 ```
 Sprint Spec (slices table)
@@ -248,6 +305,29 @@ Sprint Spec (slices table)
 SCHEMA slices: Serial (one agent at a time)
     |
 DOMAIN/ROUTE/TEST slices: Parallel (disjoint file lists)
+```
+
+- **SCHEMA slices are serial** — only one agent touches the database schema at a time
+- **DOMAIN/ROUTE/TEST slices can parallelize** — but file lists must be disjoint
+- **Shared bottleneck files** (schema, error types, event types, test helpers, app config) are owned by one agent (usually CTO or the infrastructure slice). Others report needs as blockers.
+- **Each agent owns exclusive files** declared in the work order's FILES YOU MAY TOUCH section
+- If you need a file outside your scope: **STOP and report as blocker** — do NOT edit it
+
+### Typical Flow
+
+```
+1. Window 1: /spec → write spec → /staff-review + /codex-cto → PROCEED
+   |
+2. Window 2: CTO reads spec → creates work orders → delegates
+   |
+   ├── Window 3: Backend Lead receives work order → /tdd-workflow → implement → /commit
+   ├── Window 4: Frontend Lead receives work order → /tdd-workflow → implement → /commit
+   |
+3. Window 2: CTO reviews completed slices → merges to sprint branch
+   |
+4. Window 2: /pr (triple review on sprint branch) → fix → converge
+   |
+5. Window 2: /sprint-closeout → MERGE verdict → human merges to main
 ```
 
 ### Agent Org Chart
