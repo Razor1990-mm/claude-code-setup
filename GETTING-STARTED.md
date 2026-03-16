@@ -33,13 +33,22 @@ If you get "command not found":
 
 ---
 
-## Step 3: Pick Your AI Coding Tool
+## Step 3: Install Your AI Coding Tools
 
-This repo works with any AI agent. Here's how to set up each one:
+This workflow uses **two AI tools working together** — Claude Code as your primary coding agent, and Codex as an independent reviewer. This dual-model setup is what gives you adversarial code review: two different AI models reviewing the same code from different angles, catching different categories of issues.
 
-### Option A: Claude Code (Recommended)
+### Why two tools?
 
-Claude Code runs in your terminal. It reads your codebase, writes code, runs commands, and creates PRs.
+| Tool | Role | What it catches |
+|------|------|----------------|
+| **Claude Code** (Anthropic) | Primary agent — writes specs, code, tests, fixes | Spec adherence, architecture, test gaps, AI smells |
+| **Codex** (OpenAI) | Independent reviewer — reads code directly | Multi-tenancy violations, unbounded queries, PII leaks, crash risks |
+
+Validated across 32+ review-fix commits: **near-zero overlap** between what Claude catches and what Codex catches. Using only one tool means entire categories of bugs slip through.
+
+### 3A: Install Claude Code (Required)
+
+Claude Code is your primary coding agent. It runs in your terminal, reads your codebase, writes code, runs commands, and creates PRs.
 
 **Install:**
 ```bash
@@ -51,18 +60,26 @@ npm install -g @anthropic-ai/claude-code
 claude
 ```
 
-This opens a browser window to sign in with your Anthropic account. You need a [Claude Pro, Team, or Enterprise subscription](https://claude.ai/settings/billing), or an [Anthropic API key](https://console.anthropic.com/).
+This opens a browser window to sign in with your Anthropic account. You need one of:
+- [Claude Pro subscription](https://claude.ai/settings/billing) ($20/mo) — simplest option
+- [Claude Team or Enterprise](https://claude.ai/settings/billing) — for teams
+- [Anthropic API key](https://console.anthropic.com/) — pay-per-use
 
-**Using an API key instead:**
+**Using an API key instead of subscription:**
 ```bash
 export ANTHROPIC_API_KEY="sk-ant-..."
 claude
 ```
 
-You can add this to your `~/.zshrc` (Mac) or `~/.bashrc` (Linux) so it persists:
+Add this to your shell profile so it persists:
 ```bash
+# Mac (zsh)
 echo 'export ANTHROPIC_API_KEY="sk-ant-YOUR-KEY-HERE"' >> ~/.zshrc
 source ~/.zshrc
+
+# Linux (bash)
+echo 'export ANTHROPIC_API_KEY="sk-ant-YOUR-KEY-HERE"' >> ~/.bashrc
+source ~/.bashrc
 ```
 
 **Verify it works:**
@@ -73,19 +90,9 @@ claude
 # Claude reads your codebase and explains it
 ```
 
-### Option B: Cursor
+### 3B: Install Codex (Required for full workflow)
 
-Cursor is a VS Code fork with AI built in.
-
-1. Go to [cursor.com](https://cursor.com/) and download it
-2. Install and open it
-3. Sign in with your Cursor account (free tier available)
-4. Open your project folder
-5. Use `Cmd+K` (Mac) or `Ctrl+K` (Windows) to chat with AI
-
-### Option C: Codex (OpenAI)
-
-Codex is OpenAI's terminal-based coding agent.
+Codex is OpenAI's coding agent. In this workflow, it acts as an **independent reviewer** — it reads your code directly (Claude never feeds it code) and reviews from a production-readiness perspective.
 
 **Install:**
 ```bash
@@ -97,21 +104,65 @@ npm install -g @openai/codex
 codex login
 ```
 
-This opens a browser to sign in with your OpenAI account. You need an [OpenAI API key](https://platform.openai.com/api-keys).
+This opens a browser to sign in with your OpenAI account. You need an [OpenAI API key](https://platform.openai.com/api-keys) (pay-per-use, no subscription required).
 
-**Using an API key instead:**
+**Using an API key directly:**
 ```bash
 export OPENAI_API_KEY="sk-..."
-codex
 ```
 
-### Option D: Windsurf
+Add to your shell profile:
+```bash
+# Mac
+echo 'export OPENAI_API_KEY="sk-YOUR-KEY-HERE"' >> ~/.zshrc
+source ~/.zshrc
 
-1. Go to [codeium.com/windsurf](https://codeium.com/windsurf) and download it
-2. Install and open it
-3. Sign in with your Codeium account
-4. Open your project folder
-5. Use the Cascade panel for AI-assisted coding
+# Linux
+echo 'export OPENAI_API_KEY="sk-YOUR-KEY-HERE"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+**Verify it works:**
+```bash
+cd your-project
+codex "What files are in this project?"
+```
+
+### 3C: Verify Both Tools
+
+Run this to confirm both are installed:
+```bash
+claude --version && codex --version && echo "Both tools ready!"
+```
+
+If either fails, re-run the install step for that tool.
+
+### What each tool costs
+
+| Tool | Pricing | Typical cost |
+|------|---------|-------------|
+| **Claude Code** | Pro subscription $20/mo, or API (~$3-15/1M tokens depending on model) | $20/mo flat, or ~$0.50-2.00 per feature with API |
+| **Codex** | API pay-per-use (~$2-10/1M tokens depending on model) | ~$0.05-0.30 per review |
+
+The Codex reviews are cheap — they only read code and produce findings. Claude does the heavy lifting (spec writing, implementation, fixing).
+
+### Alternative: Using Cursor or Windsurf instead of Claude Code
+
+If you prefer a GUI editor over the terminal:
+
+**Cursor** (VS Code fork with AI):
+1. Go to [cursor.com](https://cursor.com/) and download
+2. Sign in (free tier available, Pro $20/mo)
+3. Use `Cmd+K` / `Ctrl+K` to chat with AI
+4. You can still install Codex separately for the review workflows
+
+**Windsurf** (Codeium's editor):
+1. Go to [codeium.com/windsurf](https://codeium.com/windsurf) and download
+2. Sign in with Codeium account
+3. Use the Cascade panel for AI coding
+4. You can still install Codex separately for the review workflows
+
+**Note:** The workflows in this repo are optimized for Claude Code's `/command` system. With Cursor or Windsurf, you'll paste workflow contents manually instead of using slash commands.
 
 ---
 
@@ -261,7 +312,9 @@ Here's when to use each workflow:
 
 ### "Do I need both Claude AND Codex?"
 
-No. The **Solo** tier works with just one tool. Codex integration (dual-model review) is only in the **Full** tier and is optional — it adds a second AI reviewer for adversarial tension, but it's not required.
+Yes, for the full workflow. The dual-model review (Claude reviews + Codex reviews) is what gives this system its power — two different AI models catch different categories of bugs with near-zero overlap. Claude alone will miss production-readiness issues (unbounded queries, PII leaks, multi-tenancy violations). Codex alone can't write specs, implement features, or fix code. You need both.
+
+The **Solo** tier installs the workflows without Codex integration, so you *can* start with just Claude Code and add Codex later — but you'll be missing the adversarial review layer until you do.
 
 ### "What languages/frameworks does this work with?"
 
@@ -277,12 +330,12 @@ Yes. Run the setup script in your project root. It adds a `.claude/` directory (
 
 ### "What's the minimum I need to be productive?"
 
-1. Install Claude Code (Step 3A)
+1. Install Claude Code + Codex (Steps 3A and 3B)
 2. Run the setup script with **Solo** tier (Step 4)
 3. Fill in `CLAUDE.md` with your project description (Step 5)
 4. Start using `/spec`, `/fix`, `/commit`, and `/review` (Step 6)
 
-That's it. Everything else is optional and can be added later.
+That gets you the core workflow. Everything else (templates, memory, agents, hooks) can be added later.
 
 ---
 
