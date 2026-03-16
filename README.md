@@ -7,6 +7,7 @@ Battle-tested rules, templates, and workflow patterns for AI-assisted developmen
 ```
 ai-dev-setup/
 ├── README.md                  # You are here
+├── GETTING-STARTED.md         # Beginner guide (VS Code, logins, first commands)
 ├── INSTALL.md                 # Per-agent wiring instructions
 ├── PLAYBOOK.md                # Step-by-step: which workflow to run at each stage
 ├── REPO-STRUCTURE.md          # Recommended project layout for AI-assisted dev
@@ -69,6 +70,12 @@ ai-dev-setup/
     ├── cursor.md              # Setup for Cursor (.cursor/rules/)
     └── windsurf.md            # Setup for Windsurf (.windsurfrules)
 ```
+
+## New Here?
+
+**Start with [`GETTING-STARTED.md`](GETTING-STARTED.md)** — walks you through installing VS Code, setting up Claude Code / Cursor / Codex, running the setup script, and trying your first commands. No prior experience needed.
+
+Already have your tools set up? Keep reading.
 
 ## Quick Start
 
