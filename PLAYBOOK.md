@@ -7,7 +7,7 @@ The step-by-step guide for how a feature goes from idea to merged code. This tie
 ## The Big Picture
 
 ```
-IDEA → SPEC → VALIDATE → IMPLEMENT (TDD) → REVIEW → MERGE
+IDEA -> SPEC -> VALIDATE -> IMPLEMENT (TDD) -> REVIEW -> MERGE
 ```
 
 Every feature follows this flow. The workflows automate each stage. Skip stages at your own risk — every one exists because something broke without it.
@@ -23,21 +23,24 @@ Every feature follows this flow. The workflows automate each stage. Skip stages 
 1. **Run the spec workflow** (`workflows/spec.md`)
    - The agent interviews you (minimum 2 rounds)
    - Researches the codebase for entry points and existing patterns
-   - Writes a spec using the sprint spec template (`templates/sprint-spec.md`)
+   - Runs external research (WebSearch + Context7) for best practices
+   - Writes a spec with Prior Art, Build vs Adopt, Control Flow Design
    - Saves to `specs/<name>.md`
 
-2. **Run the staff review workflow** (`workflows/staff-review.md`)
-   - Reviews your spec as a skeptical senior engineer
-   - Checks: design quality, engineering filters, risk, scope, gaps
-   - Verdict: PROCEED / SIMPLIFY / RE-PLAN
+2. **Validate the spec** (run both in parallel):
+   - `workflows/staff-review.md` — Reviews as a skeptical senior engineer (design quality, engineering filters, risk, scope, format checks)
+   - `workflows/codex-cto.md` — Codex reads the plan + real code independently (feasibility, file boundaries, invariant coverage)
+   - If verdicts disagree, both are flagged
+
+3. **`/clear`** — Start implementation with fresh context
 
 ### When to skip
 - Trivial changes (typo, rename, constant) — go straight to Stage 3
-- Bug fixes from error logs — use the fix workflow (`workflows/fix.md`) instead
+- Bug fixes from error logs — use `workflows/fix.md` instead
 
 ### Output
 - `specs/<name>.md` — your implementation contract
-- Staff review verdict: PROCEED
+- Staff review + Codex CTO verdicts: both PROCEED
 
 ---
 
@@ -69,8 +72,9 @@ Every feature follows this flow. The workflows automate each stage. Skip stages 
 
 1. **Run the TDD workflow** (`workflows/tdd-workflow.md`)
    - Writes failing tests FIRST (RED phase)
-   - Outputs a test plan with categories from `rules/testing.md`
-   - Produces RED PROOF (full test output showing failures)
+   - Creates `.tdd-red-phase` marker file for compliance tracking
+   - Outputs test plan with A-H categories from `rules/testing.md`
+   - Full sub-pattern templates (A-MIN through G-MT-4)
    - Hands off to GREEN phase
 
 2. **Write production code** (GREEN phase)
@@ -96,7 +100,9 @@ Every feature follows this flow. The workflows automate each stage. Skip stages 
 ### When things go wrong
 - **Existing test breaks:** STOP. Fix your code, not the test. Tests are sacred.
 - **Need a file outside spec scope:** STOP. Report as blocker.
-- **Bug from error output:** Use `workflows/fix.md` (parse → locate → fix → verify)
+- **Spec is wrong:** Append `[DISCOVERY]` to spec changelog. Continue against corrected spec.
+- **3+ discoveries in one session:** STOP. Spec may need full re-plan.
+- **Bug from error output:** Use `workflows/fix.md` (parse -> locate -> fix -> verify)
 
 ---
 
@@ -112,47 +118,37 @@ Every feature follows this flow. The workflows automate each stage. Skip stages 
 | Medium | `workflows/audit.md` + `workflows/grill.md` | Audit + adversarial pressure |
 | Low | `workflows/audit.md` + `workflows/grill.md` + `workflows/review.md` | Full battery |
 
-### The audit (`workflows/audit.md`)
-- Multi-tenancy scan
-- Security checklist
-- Rules compliance
-- Cost/resource limits
-- Code hygiene (magic numbers, `as any`, edge cases)
-
-### The grill (`workflows/grill.md`)
-- Hostile code review
-- Challenges every assumption
-- Demands proof (show the test)
-- Suggests rewrites for ugly code
-- Verdict: PASS / NEEDS WORK / SCRAP IT
-
 ---
 
 ## Stage 5: PR Review-Fix Loop
 
-**Goal:** Automated review, fix, and re-review until clean.
+**Goal:** Automated triple review, fix, and re-review until clean.
 
 ### What to do
 
-1. **Run the PR workflow** (`workflows/pr.md`)
+1. **`/clear`** — Fresh context for the review loop
+2. **Run the PR workflow** (`workflows/pr.md`)
 
    This orchestrates everything:
    ```
    Commit + Push + Create PR
-       ↓
-   Run reviews (workflows/review.md — can run multiple perspectives)
-       ↓
+       |
+   Run 3 reviews in parallel:
+     - workflows/review.md (Claude: completeness + AI-smell)
+     - workflows/codex-code-review.md (Codex: production-readiness)
+     - workflows/codex-pr-review.md (Codex: strategic cohesion)
+       |
    Parse findings (workflows/ingest-review.md)
-       ↓
+       |
    Classify: AUTO-FIX / ASK_USER / SUGGEST
-       ↓
+       |
    Auto-fix safe findings (max 5/cycle, allowlist only)
-       ↓
+       |
    Verify (lint + typecheck + full test suite)
-       ↓
-   Re-review → convergence check
-       ↓
-   Max 3 cycles, then human decides
+       |
+   Re-review -> convergence check
+       |
+   Max 2 cycles, then human decides
    ```
 
 ### How findings are classified
@@ -164,6 +160,7 @@ Every feature follows this flow. The workflows automate each stage. Skip stages 
 | **SUGGEST** | P2 severity | Presented at end, no action |
 
 ### Auto-fix allowlist (the ONLY things auto-fixed)
+<!-- CUSTOMIZE: Define your allowlist -->
 - Missing tenant filter on queries
 - Unused imports
 - Missing typed error throws
@@ -171,6 +168,13 @@ Every feature follows this flow. The workflows automate each stage. Skip stages 
 - Missing timeouts on external calls
 
 **Everything else goes to ASK_USER.** The agent is the fixer, not the triage arbiter.
+
+### Triple review — why 3 reviewers?
+Validated across 32+ review-fix commits:
+- Claude `/review` caught 11 findings (spec adherence, architecture, test gaps)
+- Codex code-review caught 13 findings (MT violations, unbounded queries, PII, crashes)
+- Codex PR-review caught 3 strategic P0s
+- **Near-zero overlap** between reviewers
 
 ---
 
@@ -182,24 +186,20 @@ Every feature follows this flow. The workflows automate each stage. Skip stages 
 
 1. **Run sprint closeout** (`workflows/sprint-closeout.md`)
 
-   Checks:
-   - **Spec fidelity:** Did we build what the spec said? Any ghost slices (claimed done, no code)? Dead ends (cut but code exists)?
-   - **Cross-slice cohesion:** Naming consistency, interface contracts, data flow completeness, import graph health
+   7 phases:
+   - **Gather context:** Parse spec, build branch diff
+   - **Spec fidelity:** Did we build what the spec said? Ghosts? Dead ends?
+   - **Cross-slice cohesion:** Naming, interface contracts, data flow, imports
    - **Dead-end detection:** TODOs, stubs, unused code, debug artifacts
    - **Main compatibility:** Merge conflicts, shared-file overlaps
    - **Proof gates:** Lint + typecheck + full test suite
+   - **Closeout report:** Compiled verdicts
 
    Verdict: MERGE / FIX FIRST / RETHINK
-
-### When to run
-- After ALL slices are DONE on the sprint branch
-- Before merging to main
 
 ---
 
 ## Stage 7: Merge
-
-**Goal:** Get the code into main.
 
 1. Sprint closeout verdict is MERGE
 2. Human merges (the agent does NOT merge — that's your call)
@@ -210,28 +210,31 @@ Every feature follows this flow. The workflows automate each stage. Skip stages 
 ## Quick Reference: Which Workflow When
 
 ### "I'm starting a new feature"
-→ `workflows/spec.md` → `workflows/staff-review.md` → `workflows/tdd-workflow.md` → `workflows/pr.md`
+-> `spec.md` -> `staff-review.md` + `codex-cto.md` -> `/clear` -> `tdd-workflow.md` -> `pr.md`
 
 ### "I have a bug to fix"
-→ `workflows/fix.md` → `workflows/commit.md`
+-> `fix.md` -> `commit.md`
 
 ### "I want to review my code before PR"
-→ `workflows/audit.md` + `workflows/grill.md`
+-> `audit.md` + `grill.md`
 
 ### "I'm ready for PR"
-→ `workflows/pr.md` (orchestrates review + fix + re-review)
+-> `/clear` -> `pr.md` (orchestrates triple review + fix + re-review)
 
 ### "Sprint is done, ready to merge"
-→ `workflows/sprint-closeout.md`
+-> `sprint-closeout.md`
 
 ### "I need to explain this code/PR to someone"
-→ `workflows/explain.md`
+-> `explain.md` (code mode, PR mode, or sprint mode)
 
 ### "I found something we should do later"
-→ `workflows/backlog.md`
+-> `backlog.md`
+
+### "I want the full CTO process with agents"
+-> `agents/cto.md` delegates to specialist agents (see `agents/README.md`)
 
 ### "Just a quick fix, no ceremony"
-→ Fix it → run quality gates (lint, typecheck, tests) → `workflows/commit.md`
+-> Fix it -> quality gates (lint, typecheck, tests) -> `commit.md`
 
 ---
 
@@ -241,21 +244,28 @@ When multiple agents work on the same sprint:
 
 ```
 Sprint Spec (slices table)
-    ↓
+    |
 SCHEMA slices: Serial (one agent at a time)
-    ↓
+    |
 DOMAIN/ROUTE/TEST slices: Parallel (disjoint file lists)
 ```
 
-### Rules
-- Each agent owns exclusive files declared in the spec
-- Shared files (schema, types, helpers) belong to the infrastructure agent
-- If you need a file outside your scope → STOP, report as blocker
-- Pull frequently (`git pull --rebase`) to pick up other agents' changes
+### Agent Org Chart
+
+| Role | Model | Focus |
+|------|-------|-------|
+| CTO | opus | Orchestrator, work orders, process |
+| Backend Lead | opus | Domain logic, DB, API design |
+| Frontend Lead | sonnet | UI, components, UX |
+| QA Engineer | sonnet | Testing strategy, blocking power |
+| Security Engineer | opus | Auth, tenancy, PII, P0 blocking |
+| DevOps Engineer | sonnet | Cost, deployment, infrastructure |
+
+See `agents/README.md` for the full org chart, context inheritance, and skill-to-agent mapping.
 
 ### Work Orders
 
-Use the work order template (`templates/work-order.md`) to delegate bounded slices to specialist agents. Key sections:
+Use `templates/work-order.md` to delegate bounded slices. Key sections:
 - FILES YOU MAY TOUCH (allowlist)
 - DO NOT TOUCH (out of scope)
 - MUST-COVER INVARIANTS (missing any = blocker)
@@ -276,3 +286,5 @@ Use the work order template (`templates/work-order.md`) to delegate bounded slic
 | Auto-fix everything | Agent makes wrong judgment calls | Allowlist only, max 5/cycle |
 | Skip the spec for "simple" features | Simple features balloon | Spec it or explicitly call it trivial |
 | Defer quality to "future work" | Future work never happens | Ship complete or cut scope now |
+| Dismiss Codex findings as "out of scope" | Hides real issues | If Codex found it in changed files, it's in scope |
+| Single reviewer | Misses entire categories | Triple review: near-zero overlap |

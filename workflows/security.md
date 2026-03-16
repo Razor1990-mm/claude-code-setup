@@ -1,28 +1,38 @@
-# Workflow: Security Audit
+---
+name: security
+description: Run security checklist on code changes
+---
 
-Run a security-focused review on specified code or recent changes.
+Run a security audit on the specified code or recent changes.
+
+**Usage:** `/security` or `/security src/routes/`
 
 ## Checklist
 
 ### Authentication & Authorization
-<!-- CUSTOMIZE: Adapt to your auth patterns -->
+
+<!-- CUSTOMIZE: Adapt to your auth patterns (Bearer tokens, OAuth, API keys, webhook signatures, etc.) -->
 - [ ] All protected endpoints require valid credentials?
-- [ ] Signature verification on webhook endpoints?
+- [ ] Webhook endpoints verify signatures (e.g., HMAC-SHA256)?
 - [ ] Missing env vars return 500 (fail-closed), not silent bypass?
-- [ ] Auth failures return 401/403 without leaking information?
+- [ ] Auth failures return 401/403 without leaking token existence?
 
 ### Data Handling
+
 - [ ] No secrets logged (auth headers, tokens, passwords)?
 - [ ] PII handled appropriately (masked, redacted)?
 - [ ] Input validated before use?
 - [ ] Output encoded/escaped properly?
 
-### Database
-- [ ] Using parameterized queries (not raw SQL)?
+### SQL/Database
+
+<!-- CUSTOMIZE: Adapt to your ORM (Prisma, Drizzle, TypeORM, raw SQL, etc.) -->
+- [ ] Using parameterized queries (not raw SQL with string concatenation)?
 - [ ] No dynamic table/column names from user input?
 - [ ] Unique constraints used for idempotency?
 
 ### OWASP Top 10 (abridged)
+
 - [ ] **Injection** — SQL, command, NoSQL safe?
 - [ ] **Broken Auth** — Sessions, tokens handled correctly?
 - [ ] **Sensitive Data Exposure** — Encryption, logging safe?
@@ -34,10 +44,11 @@ Run a security-focused review on specified code or recent changes.
 - [ ] **Insufficient Logging** — Security events logged?
 
 ### Project-Specific
+
 <!-- CUSTOMIZE: Your project's security specifics -->
 - [ ] Rate limiting applied to public endpoints?
 - [ ] Correlation IDs included in logs for tracing?
-- [ ] Middleware order correct for auth?
+- [ ] Middleware order correct for auth chain?
 
 ## Output Format
 
@@ -45,15 +56,23 @@ Run a security-focused review on specified code or recent changes.
 ## Security Audit Results
 
 ### PASS
-- <what passed>
+- Authentication: Credentials required on all protected endpoints
+- SQL Injection: Parameterized queries used
+- Logging: No secrets in log output
 
 ### FAIL
-- **Issue** (severity)
-  File: path:line
-  Fix: Action
+- **Missing auth check** (HIGH)
+  File: src/routes/api.ts:45
+  Issue: Endpoint missing auth middleware
+  Fix: Add auth middleware before controller
+
+- **Sensitive data logged** (MEDIUM)
+  File: src/controllers/webhook.ts:23
+  Issue: Request body logged including potential PII
+  Fix: Use redact() helper or remove log
 
 ### WARNINGS
-- <potential issues>
+- Consider adding rate limiting to public endpoints
 ```
 
 ## Severity Levels

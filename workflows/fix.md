@@ -1,41 +1,45 @@
-# Workflow: Autonomous Bug Fix
+---
+name: fix
+description: Autonomous bug fixing from pasted logs/errors
+---
 
 Fix a bug from pasted error output. Works autonomously — no hand-holding.
 
-## Input
+**Usage:** Paste error output, then `/fix` (error is read from conversation context, not as an argument)
 
-User pastes one of:
+## Autonomous Fix Mode
+
+User will paste one of:
 - Stack traces
 - CI output (lint, typecheck, test failures)
 - Docker/container logs
 - Browser console errors
+- Chat/Slack threads about bugs
 - Any error message
 
-## Process: Parse -> Locate -> Fix -> Verify
+My job: **Parse -> Locate -> Fix -> Verify**
 
-### 1. PARSE
-Extract from the error:
-- File path and line number
-- Error type/code
-- Root cause hypothesis
+## Process
 
-### 2. LOCATE
-Find the bug:
-- Read the referenced file
-- Read surrounding context (callers, callees)
-- Understand why it's failing
+1. **PARSE** — Extract from the error:
+   - File path and line number
+   - Error type/code
+   - Root cause hypothesis
 
-### 3. FIX
-Make the minimal change:
-- Fix the root cause, not the symptom
-- Don't refactor unrelated code
-- Keep the change as small as possible
+2. **LOCATE** — Find the bug:
+   - Read the referenced file
+   - Read surrounding context (callers, callees)
+   - Understand why it's failing
 
-### 4. VERIFY
-Confirm the fix:
-- Run the relevant test(s)
-- Run typecheck if types changed
-- Run lint if new code added
+3. **FIX** — Make the minimal change:
+   - Fix the root cause, not the symptom
+   - Don't refactor unrelated code
+   - Keep the change as small as possible
+
+4. **VERIFY** — Confirm the fix:
+   - Run the relevant test(s)
+   - Run typecheck if types changed
+   - Run lint if new code added
 
 ## Rules
 
@@ -43,6 +47,39 @@ Confirm the fix:
 - **Don't explain at length** — just fix it
 - **Don't over-fix** — solve this bug, not all bugs
 - **Do verify** — a fix without verification isn't done
+
+## Input Examples
+
+### Stack Trace
+```
+TypeError: Cannot read properties of undefined (reading 'id')
+    at getWorkerId (/app/src/domain/jobs.ts:42:15)
+    at assignJob (/app/src/domain/jobs.ts:87:23)
+```
+-> Fix: Add null check at jobs.ts:42
+
+### Lint Error
+```
+/src/components/Timeline.tsx
+  75:5  error  React Hook "useState" is called in function "renderEntry"
+```
+-> Fix: Extract to proper component
+
+### Test Failure
+```
+FAIL src/domain/__tests__/quotes.test.ts
+  x should reject already-approved quote (15ms)
+    Expected: 409
+    Received: 200
+```
+-> Fix: Add status check before approval
+
+### CI Output
+```
+npm ERR! code ERESOLVE
+npm ERR! ERESOLVE could not resolve dependency tree
+```
+-> Fix: Resolve dependency conflict in package.json
 
 ## Output Format
 
@@ -54,17 +91,19 @@ Confirm the fix:
 **Fix:** <what was changed>
 
 ### Changes Made
-- `file.ts:42` — Added null check
-- `file.ts:45` — Added early return
+- `file.ts:42` — Added null check for worker.id
+- `file.ts:45` — Added early return for missing worker
 
 ### Verification
-- [x] Test passes
+- [x] Test passes: `npm test -- quotes.test.ts`
 - [x] Typecheck passes
 ```
 
-## When to Ask for Help
+## When It Asks for Help
 
-Only ask if:
+Only ask for clarification if:
 - Multiple unrelated errors in the output
 - Error references code that doesn't exist
 - Fix requires architectural decision
+
+Otherwise, just fix it.

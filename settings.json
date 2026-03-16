@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": ["hooks/block-checkout-main.sh"]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": ["hooks/check-domain-tenancy.sh"]
+      }
+    ]
+  }
+}

@@ -1,6 +1,12 @@
-# Testing Rules
+---
+paths:
+  - "**/__tests__/**"
+  - "**/*.test.ts"
+---
 
-TDD philosophy, test categories, and depth checklist.
+# Testing Rules (Detail)
+
+Root CLAUDE.md has the DoD checklist and TDD principle. This file has testing philosophy and patterns.
 
 ## Circular Validation Warning
 
@@ -12,6 +18,7 @@ Tests prove **internal consistency**, not external correctness. Implementation a
 **Red flags (AI-generated code):**
 - "All tests pass" but no real external system tested
 - "Auth works" but only tested with dev fallback headers
+- "Streaming works" but only tested with mocked WebSockets
 - High test coverage but zero external system integration
 
 ## Existing Tests Are Sacred (HARD RULE)
@@ -19,12 +26,13 @@ Tests prove **internal consistency**, not external correctness. Implementation a
 **NEVER modify existing tests to make new code pass.** If your implementation breaks an existing test, the implementation is wrong — not the test. Tests define the contract; the code must satisfy them.
 
 - If an existing test fails after your change: **revert your change and fix the implementation.**
-- If you believe an existing test is genuinely wrong: **STOP. Report as BLOCKER.** Do not "fix" the test yourself.
+- If you believe an existing test is genuinely wrong: **STOP. Report as BLOCKER.** Do not "fix" the test yourself. The founder decides.
+- If you think the bug "exists outside this sprint" or "was pre-existing": **STOP. Report as BLOCKER with evidence (git blame, failing commit).** Do not use this as justification to modify the test.
 - **No exceptions.** Not "just updating the expected value." Not "the test was outdated." Not "the interface changed." BLOCKER.
 
 ## TDD Workflow
 
-Write tests first. Always.
+Always invoke `/tdd-workflow` skill for the RED phase. Do NOT write tests manually without the skill.
 
 **When TDD applies:** Domain logic, API endpoints, state machines, multi-tenancy enforcement, idempotency behavior.
 **When TDD doesn't apply:** Exploratory spikes, pure refactoring with existing coverage, documentation-only, trivial one-liners.
@@ -42,7 +50,7 @@ describe('ensureRecordReady', () => {
     ).rejects.toThrow('Record missing required field: address');
   });
 });
-// Run → FAIL (proves test catches errors)
+// Run -> FAIL (proves test catches errors)
 
 // GREEN — write the production code
 export async function ensureRecordReady(
@@ -54,7 +62,7 @@ export async function ensureRecordReady(
     throw new ValidationError('Record missing required field: address');
   return record;
 }
-// Run → PASS
+// Run -> PASS
 ```
 
 ## Test Layout
@@ -72,10 +80,10 @@ export async function ensureRecordReady(
 - Example: unique constraint handling, transaction isolation, tenant filtering.
 
 **Decision guide:**
-- Idempotency/retries/webhooks → Integration (mocks can't catch real constraint behavior)
-- Concurrency/races → Integration (need real transaction isolation)
-- Multi-tenancy → Integration (need real tenant filtering)
-- Pure validation/calculation → Unit test
+- Idempotency/retries/webhooks -> Integration (mocks can't catch real constraint behavior)
+- Concurrency/races -> Integration (need real transaction isolation)
+- Multi-tenancy -> Integration (need real tenant filtering)
+- Pure validation/calculation -> Unit test
 
 ## MUST-COVER Test Categories (A-H)
 
@@ -110,17 +118,17 @@ Every domain function must cover at least A-MIN + A-TYP + A-SIDE + A-RETURN:
 
 | ID | Sub-Pattern | When Required |
 |----|-------------|---------------|
-| B-ENUM | Enum coverage | Function accepts enum param → test valid values + 1 invalid |
-| B-BOUNDS | Numeric boundaries | Function accepts number → test 0, boundary, boundary+1 |
-| B-STRING | String edge cases | Function accepts string → test empty, whitespace-only |
+| B-ENUM | Enum coverage | Function accepts enum param -> test valid values + 1 invalid |
+| B-BOUNDS | Numeric boundaries | Function accepts number -> test 0, boundary, boundary+1 |
+| B-STRING | String edge cases | Function accepts string -> test empty, whitespace-only |
 
 ### D: Concurrency Sub-Patterns
 
 | ID | Pattern | When Required |
 |----|---------|---------------|
-| D-PARALLEL | Two identical calls via Promise.all → same ID, exactly 1 side effect | Function has duplicate-key handling or CAS guard |
-| D-TXISO | Transaction rollback: fail mid-transaction → verify partial writes rolled back | Function uses database transactions |
-| D-CAS | Compare-and-swap: call with stale state → expect conflict error | Function uses conditional updates |
+| D-PARALLEL | Two identical calls via Promise.all -> same ID, exactly 1 side effect | Function has duplicate-key handling or CAS guard |
+| D-TXISO | Transaction rollback: fail mid-transaction -> verify partial writes rolled back | Function uses database transactions |
+| D-CAS | Compare-and-swap: call with stale state -> expect conflict error | Function uses conditional updates |
 
 ### E: Failure Mode Sub-Patterns
 
@@ -151,13 +159,19 @@ Every domain function must cover at least A-MIN + A-TYP + A-SIDE + A-RETURN:
 | G-MT-3 | Cross-tenant MUTATION | 404, no state change |
 | G-MT-4 | Response verification | response.orgId matches request |
 
-## Test Depth Checklist (Before Shipping)
+### INV Mapping
+
+Each test maps to an invariant (INV-1, INV-2, etc.) defined in the work order. Every invariant must have at least one test. Every test must map to at least one invariant.
+
+## Test Depth Checklist (RED Phase Gate)
+
+Before handing off to GREEN, verify applicable items are covered:
 
 **Mandatory (every domain function):**
 - [ ] A-MIN: Minimal valid input tested
 - [ ] A-TYP: Typical input tested
 - [ ] A-SIDE: All side effects verified
-- [ ] A-RETURN: Exact return shape asserted
+- [ ] A-RETURN: Exact return shape asserted (no `toBeDefined()`)
 - [ ] B: At least one invalid input per required parameter
 
 **Conditional (check if applicable):**
@@ -168,7 +182,9 @@ Every domain function must cover at least A-MIN + A-TYP + A-SIDE + A-RETURN:
 - [ ] D-PARALLEL: Race condition (if CAS or duplicate-key guard)
 - [ ] D-TXISO: Transaction rollback (if transactions used)
 - [ ] E-DOWNSTREAM: External dependency failure (if external calls)
+- [ ] E-TIMEOUT: AbortController abort (if AbortController used)
 - [ ] E-LEAK: Error response sanitized (if errors returned to callers)
+- [ ] F-NO-PII: Canary string PII check (if function creates log/event entries)
 - [ ] G-MT: At least 2 multi-tenancy patterns (if tenant-scoped)
 - [ ] G-AUTH: Fail-closed auth (if auth middleware)
 
@@ -176,7 +192,7 @@ Every domain function must cover at least A-MIN + A-TYP + A-SIDE + A-RETURN:
 ```typescript
 it("[A-MIN] creates record with minimal input", ...)
 it("[D-TXISO] rolls back on mid-transaction failure", ...)
-it("[E-DOWNSTREAM] handles timeout from external service", ...)
+it("[E-TIMEOUT] aborts cleanly when signal fires", ...)
 ```
 
 ## Touch-It-Test-It Policy
@@ -186,6 +202,16 @@ it("[E-DOWNSTREAM] handles timeout from external service", ...)
 | New domain file | Full depth checklist (no exceptions) |
 | Modified domain file with no existing tests | Add A-TYP + B + G-MT-1 minimum |
 | Unmodified domain file | No requirement. Track for future coverage. |
+
+## Test Type Requirements
+
+| Code Type | Required Test Type | Why |
+|-----------|-------------------|-----|
+| Domain function with transactions/multi-tenancy | DB-gated integration | Mocked units can't catch real constraint behavior |
+| New route/endpoint | Route-level tests (401/403, error mapping, 400 validation) | Auth + error contract |
+| Pure functions (no DB, no I/O) | Unit tests | Mocks sufficient |
+| React component with useEffect/polling | Cleanup on unmount + AbortController abort | Prevent memory leaks |
+| React component rendering API data | Mock shapes matching real API types (no `as any`) | Type safety |
 
 ## Test Cleanup
 

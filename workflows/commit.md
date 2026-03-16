@@ -1,8 +1,9 @@
-# Workflow: Structured Commit
+---
+name: commit
+description: Create a commit with the project's standard format
+---
 
-Create a git commit following project conventions.
-
-## Process
+Create a git commit following these steps:
 
 1. Run `git diff --staged` to see what's being committed
 2. If nothing is staged, run `git status` and ask user what to stage
@@ -12,12 +13,14 @@ Create a git commit following project conventions.
 
    - What changed
    - Why it was needed
+
+   Co-Authored-By: Claude <noreply@anthropic.com>
    ```
 4. Types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`
 5. **Ask user to confirm** before running `git commit`
+6. Use HEREDOC format for the commit message to preserve formatting
 
-## Rules
-
-- Do NOT push to remote (unless explicitly asked)
-- Do NOT amend previous commits (unless explicitly asked)
-- Do NOT skip pre-commit hooks
+**Do NOT:**
+- Push to remote (unless explicitly asked)
+- Amend previous commits (unless explicitly asked)
+- Skip pre-commit hooks
