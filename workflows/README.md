@@ -17,6 +17,8 @@ These are structured workflow prompts that guide AI agents through complex multi
 |----------|---------|-------------|
 | `spec.md` | Write an upfront spec with interview + external research | Before any feature, hardening, or refactor |
 | `staff-review.md` | Senior engineer review of a plan (auto-triggers before ExitPlanMode) | After writing a spec, before implementing |
+| `mock.md` | Research-driven UI mock process (refs → directions → low-fi → pixels) | Before any new UI surface or major rework |
+| `council.md` | LLM Council — 5 advisors debate, peer-review anonymously, chairman synthesizes | High-stakes product/strategy/architecture decisions |
 
 ### Implementation
 | Workflow | Purpose | When to Use |
@@ -33,6 +35,8 @@ These are structured workflow prompts that guide AI agents through complex multi
 | `audit-full.md` | Full codebase audit with 4 parallel sub-audits | Before releases or quarterly health check |
 | `grill.md` | Adversarial "break the code" review | When you want honest, hostile feedback |
 | `security.md` | Security-focused OWASP checklist | When touching auth, middleware, or routes |
+| `check-taste.md` | Frontend taste / voice-spec validator (separate from correctness) | Before any frontend spec or mock ships |
+| `sprint-cohesion.md` | Cross-spec wiring review after all specs are written | Before starting implementation on a multi-spec sprint |
 
 ### PR & Release
 | Workflow | Purpose | When to Use |
@@ -49,6 +53,9 @@ These are structured workflow prompts that guide AI agents through complex multi
 | `codex-code-review.md` | Production-readiness review ("will this survive 3am?") | Part of `/pr` triple review |
 | `codex-pr-review.md` | Strategic 8-dimension PR review (coherence, completeness) | Part of `/pr` triple review |
 | `codex-cto-parallel.md` | Parallel CTO review across multiple spec files | When validating multiple specs at once |
+| `codex-spec-review.md` | Mid-spec thought partner — challenges spec against vision/roadmap/code | After `/spec` writes the spec, before `/codex-cto` |
+| `codex-sprint-cohesion.md` | Independent second opinion on cross-spec wiring | Same time as `/sprint-cohesion` (run both, reconcile) |
+| `codex-audit-runtime-prompt.md` | Runtime audit prompt for deployed system validation | After deploys, when validating production behavior |
 
 ### Utilities
 | Workflow | Purpose | When to Use |

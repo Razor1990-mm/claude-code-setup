@@ -10,6 +10,7 @@ ai-dev-setup/
 ├── GETTING-STARTED.md         # Beginner guide (VS Code, logins, first commands)
 ├── INSTALL.md                 # Per-agent wiring instructions
 ├── PLAYBOOK.md                # Step-by-step: which workflow to run at each stage
+├── PROCESS-LESSONS.md         # Distilled hard-won workflow rules from real production sprints
 ├── REPO-STRUCTURE.md          # Recommended project layout for AI-assisted dev
 ├── global-preferences.md      # Personal working style (your global agent config)
 ├── rules/
@@ -17,9 +18,10 @@ ai-dev-setup/
 │   ├── workflow.md            # Spec-driven dev, TDD, PR review flow
 │   ├── code-patterns.md       # Idempotency, CAS, multi-tenancy, composite FKs
 │   ├── testing.md             # TDD rules, A-H categories, depth checklist, INV mapping
+│   ├── test-cleanup.md        # FK-safe delete ordering, SET NULL risks, blast radius
 │   ├── security.md            # Auth patterns, PII, logging, fail-closed
 │   └── templates.md           # Template usage enforcement
-├── workflows/                 # 21 structured workflow prompts
+├── workflows/                 # 28 structured workflow prompts
 │   ├── README.md              # Catalog of all workflows
 │   ├── spec.md                # Write specs with interview process + external research
 │   ├── tdd-workflow.md        # TDD RED phase (tests first, .tdd-red-phase marker)
@@ -30,19 +32,26 @@ ai-dev-setup/
 │   ├── audit-full.md          # Full codebase audit (4 parallel sub-audits)
 │   ├── security.md            # Security-focused OWASP checklist
 │   ├── staff-review.md        # Senior engineer plan review (auto-triggers)
+│   ├── sprint-cohesion.md     # Cross-spec wiring review (after all specs written)
 │   ├── sprint-closeout.md     # Sprint merge readiness gate (7 phases)
 │   ├── commit.md              # Structured commits
 │   ├── fix.md                 # Autonomous bug fixing
 │   ├── backlog.md             # Agent-ready backlog items
 │   ├── test-gen.md            # Test plan generation
 │   ├── explain.md             # Code/PR/sprint explanations (3 modes)
+│   ├── mock.md                # Research-driven UI mock process
+│   ├── council.md             # LLM Council — 5-advisor debate for high-stakes decisions
+│   ├── check-taste.md         # Frontend taste / voice-spec validator
 │   ├── ingest-review.md       # Parse review findings (IDs, classification)
 │   ├── check-tenancy.md       # Multi-tenancy validator (+ schema blast radius)
 │   ├── check-consistency.md   # String constant drift checker
 │   ├── codex-cto.md           # Codex CTO advisor (plan + implementation review)
 │   ├── codex-code-review.md   # Codex production-readiness review
 │   ├── codex-pr-review.md     # Codex strategic 8-dimension PR review
-│   └── codex-cto-parallel.md  # Parallel Codex CTO review across specs
+│   ├── codex-cto-parallel.md  # Parallel Codex CTO review across specs
+│   ├── codex-spec-review.md   # Mid-spec thought partner (challenges spec vs code)
+│   ├── codex-sprint-cohesion.md # Independent second opinion on cross-spec wiring
+│   └── codex-audit-runtime-prompt.md # Runtime audit prompt for deployed systems
 ├── agents/                    # Multi-agent org chart and specialist definitions
 │   ├── README.md              # Org chart, model rationale, phase flow
 │   ├── cto.md                 # CTO orchestrator (opus)

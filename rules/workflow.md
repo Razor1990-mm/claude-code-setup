@@ -79,12 +79,12 @@ These apply to all files. Root CLAUDE.md has the summary; this file has the deta
 Trigger phrases: "CTO this", "full workflow", "get the team on this", "I want the full process"
 
 Flow:
-1. **Spawn CTO** — `Agent(subagent_type="goose-cto", model="opus", prompt="<feature + context>")`
+1. **Spawn CTO** — `Agent(subagent_type="cto", model="opus", prompt="<feature + context>")`
    - CTO creates work order (must follow `templates/work-order.md`)
    - CTO delegates to specialists
 2. **CTO delegates:**
-   - Backend -> `Agent(subagent_type="goose-backend-lead", model="opus", prompt="<work order>")`
-   - Frontend -> `Agent(subagent_type="goose-frontend-lead", model="opus", prompt="<work order>")`
+   - Backend -> `Agent(subagent_type="backend-lead", model="opus", prompt="<work order>")`
+   - Frontend -> `Agent(subagent_type="frontend-lead", model="opus", prompt="<work order>")`
 3. **PR gate** — `/review` + `/codex-pr-review` before merge
 
 ## Trivial Changes
